@@ -4,48 +4,117 @@ using UnityEngine;
 
 public class Waypoints : MonoBehaviour
 {
-    public GameObject[] waypoints;
+    public Transform[] waypointsTransform;
+    Vector3[] waypoints;
+    FieldOfView fov;
+    Vector3[] path;
+    int targetIndex;
+    public Transform buttonPos;
+
+    StateMachine stateMachine;
+
     public bool cyclical = true;
     int current = 0;
     public float moveSpeed;
     public float lookSpeed;
-    float radius = 0.2f;
+    public float radius = 0.2f;
     bool backward = false;
 
-    public GameObject player;
-    bool followPlayer = false;
-
-
-    void Update()
+    private void Start()
     {
-        // pulsar Space para simular perseguir al jugador
-        // volver a pulsar para retomar la patrulla
+        fov = GetComponent<FieldOfView>();
+        stateMachine = new StateMachine();
 
-        if (Input.GetKeyDown(KeyCode.Space)) 
+        #region PATROLING STATE
+        var patroling = stateMachine.CreateState("patroling");
+
+        patroling.onEnter = delegate
         {
-            if (!followPlayer)
-                followPlayer = true;
-            else followPlayer = false;
-        }
-        
-        if (!followPlayer) //si está en modo patrulla
+            Debug.Log("Now patroling waypoints");
+        };
+
+        patroling.onFrame = delegate
         {
+            if (fov.targetDetected)
+            {
+                stateMachine.TransitionTo("alert");
+            }
+            LookAtWaypoint();
+
             if (cyclical)
                 Cyclical();
-            else BackNForth();
-            LookAtWaypoint();
-        }
-        else //si debe "seguir al jugador"
+            else
+                BackNForth();
+
+            // Trigger to state change
+        };
+
+        #endregion
+
+        var alert = stateMachine.CreateState("alert");
+
+        alert.onEnter = delegate
         {
-            GoToPlayer();
-            LookAtPlayer();
-        } 
+            PathRequestManager.RequestPath(transform.position, buttonPos.position, OnPathFound);
+        };
+
+        var seeking = stateMachine.CreateState("seeking");
+
+        seeking.onEnter = delegate
+        {
+            Debug.Log("Now seeking for player");
+        };
+
+        seeking.onFrame = delegate
+        {
+
+        };
+
+        waypoints = new Vector3[waypointsTransform.Length];
+        for(int i = 0; i < waypointsTransform.Length; i++)
+        {
+            waypoints[i] = waypointsTransform[i].position;
+        }
+        transform.position = waypoints[current];
+    }
+    private void FixedUpdate()
+    {
+        stateMachine.Update();
+    }
+    public void OnPathFound(Vector3[] newPath, bool pathSuccesful)
+    {
+        if (pathSuccesful)
+        {
+            path = newPath;
+            StopCoroutine("FollowPath");
+            StartCoroutine("FollowPath");
+        }
     }
 
-    void Cyclical() //patrulla en bucle
+    IEnumerator FollowPath()
+    {
+        Vector3 currentWaypoint = path[0];
+
+        while (true)
+        {
+            if (transform.position == currentWaypoint)
+            {
+                targetIndex++;
+                if(targetIndex >= path.Length)
+                {
+                    yield break;
+                }
+                currentWaypoint = path[targetIndex];
+            }
+
+            transform.position = Vector3.MoveTowards(transform.position, currentWaypoint, moveSpeed);
+            yield return null;
+        }
+    }
+    public void Cyclical() //patrulla en bucle
     {
         //selección de waypoint
-        if (Vector3.Distance(waypoints[current].transform.position, transform.position) < radius)
+        if (Vector3.Distance(waypoints[current], transform.position) < radius)
         {
             current += 1;
             if (current >= waypoints.Length)
@@ -53,15 +122,15 @@ public class Waypoints : MonoBehaviour
                 current = 0;
             }
         }
-
+        Vector3 dir = (waypoints[current] - transform.position).normalized;
         //ir al waypoint
-        transform.position = Vector3.MoveTowards(transform.position, waypoints[current].transform.position, Time.deltaTime * moveSpeed);
+        transform.position += dir * moveSpeed;
     }
 
-    void BackNForth() //patrulla ida y vuelta
+    public void BackNForth() //patrulla ida y vuelta
     {
         //selección de waypoint
-        if (Vector3.Distance(waypoints[current].transform.position, transform.position) < radius)
+        if (Vector3.Distance(waypoints[current], transform.position) < radius)
         {
             if (backward) //a la vuelta
             {
@@ -82,29 +151,17 @@ public class Waypoints : MonoBehaviour
                 }
             }
         }
-
+        Vector3 dir = (waypoints[current] - transform.position).normalized;
         //ir al waypoint
-        transform.position = Vector3.MoveTowards(transform.position, waypoints[current].transform.position, Time.deltaTime * moveSpeed);
+        transform.position += dir * moveSpeed;
     }
 
-    void GoToPlayer() //ir al "jugador"
+    public void LookAtWaypoint() //rotación enemigo
     {
-        if (Vector3.Distance(player.transform.position, transform.position) >= radius)
-            transform.position = Vector3.MoveTowards(transform.position, player.transform.position, Time.deltaTime * moveSpeed);
+        
+        Vector3 dir = (waypoints[current] - transform.position).normalized;
+        Quaternion toRotation = Quaternion.LookRotation(Vector3.forward, dir);
+        transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, lookSpeed);
+
     }
-
-    void LookAtWaypoint() //rotación enemigo
-    {
-        Vector3 dir = waypoints[current].transform.position - transform.position;
-
-        transform.right = Vector3.Lerp(transform.right, dir, Time.deltaTime * lookSpeed);
-    }
-
-    void LookAtPlayer() //rotación enemigo
-    {
-        Vector3 dir = player.transform.position - transform.position;
-
-        transform.right = Vector3.Lerp(transform.right, dir, Time.deltaTime * lookSpeed);
-    }
-
 }

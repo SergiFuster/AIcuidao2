@@ -78,71 +78,31 @@ public class GridNode : MonoBehaviour
             }
         }
     }
-    
-
-    public List<Node> path;
+   
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, gridWorldSize.y, gridWorldSize.z));
-        if(grid != null)
+        if(grid != null && showNodes)
         {
-            if(path != null)
+            foreach (Node n in grid)
             {
-                if (showNodes)
+                if (n == playerNode)
                 {
-                    foreach (Node n in grid)
-                    {
-                        if (n.walkable)
-                        {
-                            Gizmos.color = Color.blue;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
-                        }
-                        else
-                        {
-                            Gizmos.color = Color.red;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
-                        }
-                    }
+                    Gizmos.color = Color.black;
+                    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
                 }
-                
-                Gizmos.color = Color.black;
-                foreach (Node n in path)
+                else if (n.walkable)
                 {
-                    if (path.IndexOf(n) != 0)
-                    {
-                        Gizmos.DrawLine(n.worldPosition, path[path.IndexOf(n) - 1].worldPosition);
-                    }
-
+                    Gizmos.color = Color.blue;
+                    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
+                }
+                else
+                {
+                    Gizmos.color = Color.red;
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
                 }
             }
-            else
-            {
-                if (showNodes)
-                {
-                    foreach (Node n in grid)
-                    {
-                        if (n == playerNode)
-                        {
-                            Gizmos.color = Color.black;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
-                        }
-                        else if (n.walkable)
-                        {
-                            Gizmos.color = Color.blue;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
-                        }
-                        else
-                        {
-                            Gizmos.color = Color.red;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
-                        }
-                    }
-                }
-                
-            }
-            
         }
     }  
 }
