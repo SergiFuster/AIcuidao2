@@ -50,7 +50,7 @@ public class FieldOfView : MonoBehaviour
 			if (Vector3.Angle(transform.up, dirToTarget) < viewAngle / 2)
 			{
 
-				if (!Physics.Raycast(transform.position, dirToTarget, dstToTarget, obstacleMask))
+				if (!Physics2D.Raycast(transform.position, dirToTarget, dstToTarget, obstacleMask))
 				{
 					targetDetected = true;
 				}

@@ -99,6 +99,7 @@ public class Waypoints : MonoBehaviour
                 targetIndex++;
                 if(targetIndex >= path.Length)
                 {
+                    LoseController.instance.LoseGame();
                     yield break;
                 }
                 currentWaypoint = path[targetIndex];
@@ -106,11 +107,11 @@ public class Waypoints : MonoBehaviour
             Vector3 dir = (currentWaypoint - transform.position).normalized;
             Quaternion toRotation = Quaternion.LookRotation(Vector3.forward, dir);
             transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, lookSpeed);
-            transform.position = Vector3.MoveTowards(transform.position, currentWaypoint, moveSpeed);
+            transform.position = Vector3.MoveTowards(transform.position, currentWaypoint, moveSpeed*0.5f);
             yield return null;
         }
 
-        //START ALARM GAMESTATE
+        
     }
     public void Cyclical() //patrulla en bucle
     {

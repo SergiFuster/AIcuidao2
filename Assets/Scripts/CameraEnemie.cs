@@ -7,9 +7,11 @@ public class CameraEnemie : MonoBehaviour
     float initialRotation;
     public float arc;
     StateMachine stateMachine;
+    FieldOfView fov;
     // Start is called before the first frame update
     void Start()
     {
+        fov = GetComponent<FieldOfView>();
         initialRotation = Mathf.Abs(transform.eulerAngles.z);
         Debug.Log("initial rotations: " + initialRotation);
         stateMachine = new StateMachine();
@@ -21,10 +23,12 @@ public class CameraEnemie : MonoBehaviour
 
         searching.onFrame = delegate
         {
+            if (fov.targetDetected)
+            {
+                LoseController.instance.LoseGame();
+            }
             var angle = Mathf.Sin(Time.time) * arc / 2f;
-            Debug.Log("Before: " + angle);
             angle += initialRotation;
-            Debug.Log("After: " + angle);
             transform.eulerAngles = Vector3.forward * angle;
         };
     }
