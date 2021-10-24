@@ -5,11 +5,11 @@ using UnityEngine;
 public class Waypoints : MonoBehaviour
 {
     public Transform[] waypointsTransform;
+    public Transform[] buttons;
     Vector3[] waypoints;
     FieldOfView fov;
     Vector3[] path;
     int targetIndex;
-    public Transform buttonPos;
 
     StateMachine stateMachine;
 
@@ -51,25 +51,22 @@ public class Waypoints : MonoBehaviour
 
         #endregion
 
+        #region ALERT
         var alert = stateMachine.CreateState("alert");
 
         alert.onEnter = delegate
         {
-            PathRequestManager.RequestPath(transform.position, buttonPos.position, OnPathFound);
+            Vector3 targetButton = buttons[0].position;
+            for(int i = 1; i < buttons.Length; i ++)
+            {
+                if (Vector3.Distance(transform.position, buttons[i].position) < Vector3.Distance(transform.position, targetButton))
+                    targetButton = buttons[i].position;
+            }
+            PathRequestManager.RequestPath(transform.position, targetButton, OnPathFound);
         };
 
-        var seeking = stateMachine.CreateState("seeking");
-
-        seeking.onEnter = delegate
-        {
-            Debug.Log("Now seeking for player");
-        };
-
-        seeking.onFrame = delegate
-        {
-
-        };
-
+        #endregion
+        
         waypoints = new Vector3[waypointsTransform.Length];
         for(int i = 0; i < waypointsTransform.Length; i++)
         {
@@ -106,10 +103,14 @@ public class Waypoints : MonoBehaviour
                 }
                 currentWaypoint = path[targetIndex];
             }
-
+            Vector3 dir = (currentWaypoint - transform.position).normalized;
+            Quaternion toRotation = Quaternion.LookRotation(Vector3.forward, dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, lookSpeed);
             transform.position = Vector3.MoveTowards(transform.position, currentWaypoint, moveSpeed);
             yield return null;
         }
+
+        //START ALARM GAMESTATE
     }
     public void Cyclical() //patrulla en bucle
     {
